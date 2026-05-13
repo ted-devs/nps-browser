@@ -2,11 +2,15 @@
 
 #include "pkg2zip_utils.h"
 
+#include <setjmp.h>
+extern jmp_buf g_pkg2zip_jmp;
+extern int g_pkg2zip_use_jmp;
+
 // correctly outputs utf8 string
 void sys_output_init(void);
 void sys_output_done(void);
 void sys_output(const char* msg, ...);
-void NORETURN sys_error(const char* msg, ...);
+void sys_error(const char* msg, ...);
 
 void sys_output_progress_init(uint64_t size);
 void sys_output_progress(uint64_t progress);

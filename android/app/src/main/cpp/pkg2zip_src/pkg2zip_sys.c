@@ -1,5 +1,6 @@
 #include "pkg2zip_sys.h"
 #include "pkg2zip_utils.h"
+#include <setjmp.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -75,6 +76,9 @@ void sys_error(const char* msg, ...)
     }
 
     SetConsoleOutputCP(gOldCP);
+    if (g_pkg2zip_use_jmp) {
+        longjmp(g_pkg2zip_jmp, 1);
+    }
     exit(EXIT_FAILURE);
 }
 
@@ -195,7 +199,9 @@ void sys_error(const char* msg, ...)
     va_start(arg, msg);
     vfprintf(stderr, msg, arg);
     va_end(arg);
-
+    if (g_pkg2zip_use_jmp) {
+        longjmp(g_pkg2zip_jmp, 1);
+    }
     exit(EXIT_FAILURE);
 }
 

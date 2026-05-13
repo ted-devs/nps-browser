@@ -7,7 +7,10 @@ import 'services/background_download_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  Permission.notification.request();
+  await [
+    Permission.notification,
+    Permission.manageExternalStorage,
+  ].request();
   
   DecryptionService().initialize();
   initializeBackgroundService();

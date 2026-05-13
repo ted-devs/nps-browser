@@ -4,6 +4,10 @@
 #include "pkg2zip_psp.h"
 #include "pkg2zip_utils.h"
 #include "pkg2zip_zrif.h"
+#include <stdarg.h>
+
+jmp_buf g_pkg2zip_jmp;
+int g_pkg2zip_use_jmp = 0;
 
 #include <assert.h>
 #include <stdint.h>
@@ -277,6 +281,11 @@ typedef enum {
 
 int pkg2zip_main(int argc, char* argv[])
 {
+    g_pkg2zip_use_jmp = 1;
+    if (setjmp(g_pkg2zip_jmp)) {
+        g_pkg2zip_use_jmp = 0;
+        return 1;
+    }
     sys_output_init();
 
     int zipped = 1;
@@ -566,7 +575,8 @@ int pkg2zip_main(int argc, char* argv[])
     if (listing && zipped)
     {
         sys_output("%s\n", root);
-        exit(0);
+        g_pkg2zip_use_jmp = 0;
+        return 0;
     }
     else if (listing && zipped == 0)
     {
@@ -934,5 +944,6 @@ int pkg2zip_main(int argc, char* argv[])
 
     sys_output("[*] done!\n");
     sys_output_done();
+    g_pkg2zip_use_jmp = 0;
     return 0;
 }

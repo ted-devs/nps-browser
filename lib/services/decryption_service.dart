@@ -32,10 +32,17 @@ class DecryptionService {
   /// [zrif]: Optional zRIF string.
   /// Returns true if successful.
   Future<bool> decryptPkg(String pkgPath, String outputDir, {String? zrif}) async {
+    print('Starting decryption: $pkgPath -> $outputDir');
     return await Isolate.run(() async {
-       final service = DecryptionService();
-       service.initialize();
-       return service._decryptPkgInternal(pkgPath, outputDir, zrif: zrif);
+       try {
+         final service = DecryptionService();
+         service.initialize();
+         print('Isolate: Initialized DecryptionService');
+         return service._decryptPkgInternal(pkgPath, outputDir, zrif: zrif);
+       } catch (e, stack) {
+         print('Isolate Exception: $e\n$stack');
+         return false;
+       }
     });
   }
 
@@ -62,7 +69,9 @@ class DecryptionService {
       }
 
       // Run pkg2zip
+      print('Running pkg2zip with args: $args');
       int result = _pkg2zipMain(argc, argv);
+      print('pkg2zip finished with result: $result');
 
       // Free memory
       for (int i = 0; i < argc; i++) {
@@ -70,11 +79,14 @@ class DecryptionService {
       }
       calloc.free(argv);
 
-      _flattenPspemuFolder(outputDir);
+      if (result == 0) {
+        print('Flattening folder structure...');
+        _flattenPspemuFolder(outputDir);
+      }
 
       return result == 0;
     } catch (e) {
-      print('Decryption failed: $e');
+      print('Decryption failed with exception: $e');
       return false;
     } finally {
       Directory.current = originalDir;
