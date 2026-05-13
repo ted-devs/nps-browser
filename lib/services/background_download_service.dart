@@ -64,6 +64,26 @@ void onStart(ServiceInstance service) async {
     service.stopSelf();
   });
 
+  final Map<String, CancelToken> activeTokens = {};
+
+  service.on('cancelDownload').listen((event) {
+    final titleId = event?['titleId'] as String?;
+    if (titleId != null && activeTokens.containsKey(titleId)) {
+      activeTokens[titleId]?.cancel();
+      activeTokens.remove(titleId);
+      service.invoke('update', {
+        'titleId': titleId,
+        'status': 'cancelled',
+      });
+      if (service is AndroidServiceInstance) {
+        service.setForegroundNotificationInfo(
+          title: 'Download Cancelled',
+          content: 'The download was stopped.',
+        );
+      }
+    }
+  });
+
   service.on('addDownload').listen((event) async {
     if (event == null) return;
 
@@ -86,6 +106,9 @@ void onStart(ServiceInstance service) async {
 
     try {
       final dio = Dio();
+      final cancelToken = CancelToken();
+      activeTokens[titleId] = cancelToken;
+
       final tempDir = await getTemporaryDirectory();
       final pkgPath = p.join(tempDir.path, '$titleId.pkg');
 
@@ -138,7 +161,10 @@ void onStart(ServiceInstance service) async {
         options: Options(
           followRedirects: true,
         ),
+        cancelToken: cancelToken,
       );
+
+      activeTokens.remove(titleId);
 
       service.invoke('update', {'titleId': titleId, 'status': 'decrypting'});
 
@@ -183,6 +209,10 @@ void onStart(ServiceInstance service) async {
         }
       }
     } catch (e) {
+      activeTokens.remove(titleId);
+      if (e is DioException && e.type == DioExceptionType.cancel) {
+        return;
+      }
       service.invoke('update', {
         'titleId': titleId,
         'status': 'error',

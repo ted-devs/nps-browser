@@ -14,6 +14,13 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Downloads'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: 'Clear Finished',
+            onPressed: () => DownloadManager().clearCompleted(),
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: DownloadManager(),
@@ -67,6 +74,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         );
       case DownloadStatus.completed:
         return const Text('Completed');
+      case DownloadStatus.cancelled:
+        return const Text('Cancelled', style: TextStyle(color: Colors.orange));
       case DownloadStatus.error:
         return Text('Error: ${task.error}', style: const TextStyle(color: Colors.red));
     }
@@ -78,8 +87,13 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         return const Icon(Icons.check_circle, color: Colors.green);
       case DownloadStatus.error:
         return const Icon(Icons.error, color: Colors.red);
+      case DownloadStatus.cancelled:
+        return const Icon(Icons.cancel, color: Colors.orange);
       default:
-        return const CircularProgressIndicator();
+        return IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => DownloadManager().cancelDownload(task.game.titleId),
+        );
     }
   }
 }

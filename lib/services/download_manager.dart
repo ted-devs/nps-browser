@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import '../models/psp_game.dart';
 
-enum DownloadStatus { pending, downloading, decrypting, completed, error }
+enum DownloadStatus { pending, downloading, decrypting, completed, error, cancelled }
 
 class DownloadTask {
   final PspGame game;
@@ -53,6 +53,9 @@ class DownloadManager extends ChangeNotifier {
             task.status = DownloadStatus.error;
             task.error = error;
             break;
+          case 'cancelled':
+            task.status = DownloadStatus.cancelled;
+            break;
         }
         notifyListeners();
       } catch (e) {
@@ -81,7 +84,18 @@ class DownloadManager extends ChangeNotifier {
     });
   }
 
-  void cancelDownload() {
-    // Not implemented yet
+  void cancelDownload(String titleId) {
+    _tasks.removeWhere((t) => t.game.titleId == titleId);
+    notifyListeners();
+    FlutterBackgroundService().invoke('cancelDownload', {'titleId': titleId});
+  }
+  
+  void clearCompleted() {
+    _tasks.removeWhere((t) => 
+      t.status == DownloadStatus.completed || 
+      t.status == DownloadStatus.error || 
+      t.status == DownloadStatus.cancelled
+    );
+    notifyListeners();
   }
 }
