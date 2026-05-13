@@ -12,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String _gameFolder = '';
+  bool _largerTiles = false;
 
   @override
   void initState() {
@@ -23,6 +24,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _gameFolder = prefs.getString('game_folder') ?? '';
+      _largerTiles = prefs.getBool('larger_tiles') ?? false;
+    });
+  }
+
+  Future<void> _toggleLargerTiles(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('larger_tiles', value);
+    setState(() {
+      _largerTiles = value;
     });
   }
 
@@ -66,6 +76,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(_gameFolder.isEmpty ? 'Not set (Required)' : _gameFolder),
             trailing: const Icon(Icons.folder_open),
             onTap: _pickGameFolder,
+          ),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'Interface Settings',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Larger Tiles'),
+            subtitle: const Text('Use a 2-column grid layout'),
+            value: _largerTiles,
+            onChanged: _toggleLargerTiles,
           ),
         ],
       ),

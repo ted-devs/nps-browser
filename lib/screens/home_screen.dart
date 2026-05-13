@@ -21,13 +21,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _isLoading = true;
   String? _gameFolder;
+  bool _largerTiles = false;
+  final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   String _selectedRegion = 'All';
 
   final List<String> _regions = ['All', 'US', 'EU', 'JP', 'ASIA'];
 
   int _currentPage = 0;
-  final int _itemsPerPage = 20;
+  int get _itemsPerPage => _largerTiles ? 10 : 15;
 
   @override
   void initState() {
@@ -35,11 +38,23 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkFolderAndLoad();
   }
 
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkFolderAndLoad() async {
     final prefs = await SharedPreferences.getInstance();
     final folder = prefs.getString('game_folder');
+    final region = prefs.getString('selected_region') ?? 'All';
+    final larger = prefs.getBool('larger_tiles') ?? false;
+    
     setState(() {
       _gameFolder = folder;
+      _selectedRegion = region;
+      _largerTiles = larger;
     });
 
     if (folder != null && folder.isNotEmpty) {
@@ -47,6 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _saveRegion(String region) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_region', region);
   }
 
   Future<void> _loadData() async {
@@ -86,15 +106,19 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.download),
             tooltip: 'Downloads',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const DownloadsScreen()),
-            ),
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
             onPressed: () async {
+              FocusScope.of(context).unfocus();
               await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -104,54 +128,58 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: isFolderSet
-          ? Column(
-              children: [
-                _buildFilters(),
-                Expanded(
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _buildGrid(_filteredData),
-                ),
-              ],
-            )
-          : Center(
-              child: Padding(
-                padding: const EdgeInsets.all(30.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.folder_open, size: 80, color: Colors.blueAccent),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Game Folder Not Set',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Please select your PSP/GAME folder to start browsing and downloading games.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 30),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                        );
-                        _checkFolderAndLoad();
-                      },
-                      icon: const Icon(Icons.settings),
-                      label: const Text('SET PSP/GAME FOLDER'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+      body: GestureDetector(
+        onTap: () => _searchFocusNode.unfocus(),
+        child: isFolderSet
+            ? Column(
+                children: [
+                  _buildFilters(),
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _buildGrid(_filteredData),
+                  ),
+                ],
+              )
+            : Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(30.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.folder_open, size: 80, color: Colors.blueAccent),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Game Folder Not Set',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Please select your PSP/GAME folder to start browsing and downloading games.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 30),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          FocusScope.of(context).unfocus();
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          );
+                          _checkFolderAndLoad();
+                        },
+                        icon: const Icon(Icons.settings),
+                        label: const Text('SET PSP/GAME FOLDER'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -161,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           TextField(
+            focusNode: _searchFocusNode,
             decoration: InputDecoration(
               hintText: 'Search games...',
               prefixIcon: const Icon(Icons.search),
@@ -189,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _selectedRegion = region;
                           _applyFilters();
                         });
+                        _saveRegion(region);
                       }
                     },
                   ),
@@ -217,9 +247,11 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Expanded(
           child: GridView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _largerTiles ? 2 : 3,
               childAspectRatio: 0.6,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
@@ -243,6 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         setState(() {
                           _currentPage--;
                         });
+                        _scrollController.jumpTo(0);
                       }
                     : null,
               ),
@@ -257,6 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         setState(() {
                           _currentPage++;
                         });
+                        _scrollController.jumpTo(0);
                       }
                     : null,
               ),

@@ -24,10 +24,13 @@ class _GameCardState extends State<GameCard> {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => GameDetailsScreen(game: widget.game)),
-        ),
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => GameDetailsScreen(game: widget.game)),
+          );
+        },
         child: Stack(
           fit: StackFit.expand,
           children: [
