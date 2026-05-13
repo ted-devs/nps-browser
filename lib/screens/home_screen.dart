@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/psp_game.dart';
 import '../services/nps_api_service.dart';
 import '../widgets/game_card.dart';
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<PspGame> _filteredData = [];
 
   bool _isLoading = true;
+  String? _gameFolder;
   String _searchQuery = '';
   String _selectedRegion = 'All';
 
@@ -30,7 +32,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _checkFolderAndLoad();
+  }
+
+  Future<void> _checkFolderAndLoad() async {
+    final prefs = await SharedPreferences.getInstance();
+    final folder = prefs.getString('game_folder');
+    setState(() {
+      _gameFolder = folder;
+    });
+
+    if (folder != null && folder.isNotEmpty) {
+      _loadData();
+    } else {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _loadData() async {
@@ -61,6 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isFolderSet = _gameFolder != null && _gameFolder!.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('NPS Browser'),
@@ -76,23 +94,64 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             tooltip: 'Settings',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+              _checkFolderAndLoad();
+            },
+          ),
+        ],
+      ),
+      body: isFolderSet
+          ? Column(
+              children: [
+                _buildFilters(),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildGrid(_filteredData),
+                ),
+              ],
+            )
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(30.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.folder_open, size: 80, color: Colors.blueAccent),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Game Folder Not Set',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Please select your PSP/GAME folder to start browsing and downloading games.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                        );
+                        _checkFolderAndLoad();
+                      },
+                      icon: const Icon(Icons.settings),
+                      label: const Text('SET PSP/GAME FOLDER'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildFilters(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildGrid(_filteredData),
-          ),
-        ],
-      ),
     );
   }
 
@@ -103,42 +162,39 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           TextField(
             decoration: InputDecoration(
-              hintText: 'Search title or ID...',
+              hintText: 'Search games...',
               prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
             ),
-            onChanged: (val) {
-              _searchQuery = val;
+            onChanged: (value) {
+              _searchQuery = value;
               _applyFilters();
             },
           ),
-          const SizedBox(height: 8),
-          const SizedBox(height: 8),
-          const Text(
-            'Filter by Region:',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            alignment: WrapAlignment.center,
-            children: _regions.map((region) {
-              return ChoiceChip(
-                label: Text(region),
-                selected: _selectedRegion == region,
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() {
-                      _selectedRegion = region;
-                      _applyFilters();
-                    });
-                  }
-                },
-              );
-            }).toList(),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _regions.map((region) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
+                    label: Text(region),
+                    selected: _selectedRegion == region,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedRegion = region;
+                          _applyFilters();
+                        });
+                      }
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),

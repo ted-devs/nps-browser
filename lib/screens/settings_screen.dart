@@ -22,7 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _gameFolder = prefs.getString('gameFolder') ?? '';
+      _gameFolder = prefs.getString('game_folder') ?? '';
     });
   }
 
@@ -40,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String? selectedDirectory = await FilePicker.getDirectoryPath();
     if (selectedDirectory != null) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('gameFolder', selectedDirectory);
+      await prefs.setString('game_folder', selectedDirectory);
       setState(() {
         _gameFolder = selectedDirectory;
       });
