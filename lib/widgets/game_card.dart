@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/psp_game.dart';
 import '../services/cover_art_service.dart';
 import '../services/download_manager.dart';
+import '../screens/game_details_screen.dart';
 
 class GameCard extends StatefulWidget {
   final PspGame game;
@@ -23,17 +24,23 @@ class _GameCardState extends State<GameCard> {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => _showDetailsDialog(context, coverUrl),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => GameDetailsScreen(game: widget.game)),
+        ),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            CachedNetworkImage(
-              imageUrl: coverUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey[800],
-                child: const Center(child: Icon(Icons.videogame_asset, size: 50, color: Colors.white54)),
+            Hero(
+              tag: 'cover_${widget.game.titleId}_${widget.game.region}',
+              child: CachedNetworkImage(
+                imageUrl: coverUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey[800],
+                  child: const Center(child: Icon(Icons.videogame_asset, size: 50, color: Colors.white54)),
+                ),
               ),
             ),
             Positioned(
@@ -84,58 +91,6 @@ class _GameCardState extends State<GameCard> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showDetailsDialog(BuildContext context, String coverUrl) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(widget.game.name),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (coverUrl.isNotEmpty) ...[
-                Center(
-                  child: CachedNetworkImage(
-                    imageUrl: coverUrl,
-                    height: 150,
-                    errorWidget: (context, url, error) => const SizedBox.shrink(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              Text('Title ID: ${widget.game.titleId}'),
-              const SizedBox(height: 8),
-              Text('Region: ${widget.game.region}'),
-              const SizedBox(height: 8),
-              Text('Content ID: ${widget.game.contentId}'),
-              const SizedBox(height: 8),
-              Text('Size: ${(widget.game.fileSize / (1024 * 1024)).toStringAsFixed(2)} MB'),
-              const SizedBox(height: 8),
-              Text('zRIF: ${widget.game.zrif.isNotEmpty ? widget.game.zrif : "None"}'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              DownloadManager().addDownload(widget.game);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Download added to queue')),
-              );
-            },
-            child: const Text('Download'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }

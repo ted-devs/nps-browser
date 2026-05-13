@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:csv/csv.dart';
+import 'dart:isolate';
 import '../models/psp_game.dart';
 
 class NpsApiService {
@@ -14,18 +15,31 @@ class NpsApiService {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final rawTsv = response.body;
-        // The first row is the header, skip it.
-        final rows = const CsvDecoder(
-          fieldDelimiter: '\t',
-        ).convert(rawTsv);
+        
+        // Parsing thousands of rows can block the UI thread.
+        // Offload it to a separate isolate.
+        return await Isolate.run(() {
+          final rows = const CsvDecoder(
+            fieldDelimiter: '\t',
+          ).convert(rawTsv);
 
-        if (rows.isEmpty) return [];
+          if (rows.isEmpty) return <PspGame>[];
 
-        return rows
-            .skip(1) // Skip header row
-            .map((row) => PspGame.fromCsv(row))
-            .where((g) => g.pkgLink.startsWith('http'))
-            .toList();
+          final seenIds = <String>{};
+          return rows
+              .skip(1) // Skip header row
+              .map((row) => PspGame.fromCsv(row))
+              .where((g) {
+                final isLinkValid = g.pkgLink.startsWith('http');
+                final uniqueKey = '${g.titleId}_${g.region}';
+                if (isLinkValid && !seenIds.contains(uniqueKey)) {
+                  seenIds.add(uniqueKey);
+                  return true;
+                }
+                return false;
+              })
+              .toList();
+        });
       }
       return [];
     } catch (e) {
