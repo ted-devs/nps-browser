@@ -25,11 +25,11 @@ class DecryptionService {
     _pkg2zipMain = _lib.lookupFunction<Pkg2ZipMainC, Pkg2ZipMainDart>('pkg2zip_main');
   }
 
-  /// Decrypts a PKG file to ISO or extracts DLC.
+  /// Decrypts a PKG file to ISO.
   /// 
   /// [pkgPath]: The path to the downloaded .pkg file.
   /// [outputDir]: The directory where the extracted files should be placed.
-  /// [zrif]: Optional zRIF string for Vita/DLC.
+  /// [zrif]: Optional zRIF string.
   /// Returns true if successful.
   Future<bool> decryptPkg(String pkgPath, String outputDir, {String? zrif}) async {
     return await Isolate.run(() async {
@@ -93,28 +93,6 @@ class DecryptionService {
       }
       // Clean up empty directories
       try { Directory(p.join(baseDir, 'pspemu')).deleteSync(recursive: true); } catch (_) {}
-    }
-
-    // Check if addcont exists (for DLC)
-    var addcontDir = Directory(p.join(baseDir, 'addcont'));
-    if (addcontDir.existsSync()) {
-        // DLCs are usually in addcont/TitleID/DLC_ID
-        // In PSP, DLCs go into PSP/GAME/TitleID.
-        // Wait, pkg2zip puts Vita DLCs in addcont. For PSP, does it put it in pspemu/PSP/GAME?
-        // Yes, pkg2zip puts PSP content in pspemu/PSP/GAME/TITLEID/
-        var pspGameDir = Directory(p.join(baseDir, 'pspemu', 'PSP', 'GAME'));
-        if (pspGameDir.existsSync()) {
-            var items = pspGameDir.listSync();
-            for (var item in items) {
-                if (item is Directory) {
-                    var targetDir = Directory(p.join(baseDir, p.basename(item.path)));
-                    if (!targetDir.existsSync()) {
-                        item.renameSync(targetDir.path);
-                    }
-                }
-            }
-            try { Directory(p.join(baseDir, 'pspemu')).deleteSync(recursive: true); } catch (_) {}
-        }
     }
   }
 }

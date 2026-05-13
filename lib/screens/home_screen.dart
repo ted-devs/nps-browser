@@ -21,13 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedRegion = 'All';
-  String _selectedType = 'Games';
 
   final List<String> _regions = ['All', 'US', 'EU', 'JP', 'ASIA'];
-  final List<String> _types = ['All', 'Games', 'DLCs'];
 
   int _currentPage = 0;
-  final int _itemsPerPage = 60;
+  final int _itemsPerPage = 20;
 
   @override
   void initState() {
@@ -38,11 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final results = await Future.wait([
-        _apiService.fetchPspGames(),
-        _apiService.fetchPspDlcs(),
-      ]);
-      _allData = [...results[0], ...results[1]];
+      _allData = await _apiService.fetchPspGames();
       _applyFilters();
     } finally {
       setState(() => _isLoading = false);
@@ -60,14 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final matchesRegion =
             _selectedRegion == 'All' || g.region == _selectedRegion;
 
-        bool matchesType = true;
-        if (_selectedType == 'Games') {
-          matchesType = !g.isDlc;
-        } else if (_selectedType == 'DLCs') {
-          matchesType = g.isDlc;
-        }
-
-        return matchesSearch && matchesRegion && matchesType;
+        return matchesSearch && matchesRegion;
       }).toList();
     });
   }
@@ -129,58 +116,29 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    'Region:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(width: 8),
-                  DropdownButton<String>(
-                    value: _selectedRegion,
-                    items: _regions.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        _selectedRegion = newValue;
-                        _applyFilters();
-                      }
-                    },
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text(
-                    'Type:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(width: 8),
-                  DropdownButton<String>(
-                    value: _selectedType,
-                    items: _types.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        _selectedType = newValue;
-                        _applyFilters();
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
+          const SizedBox(height: 8),
+          const Text(
+            'Filter by Region:',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            alignment: WrapAlignment.center,
+            children: _regions.map((region) {
+              return ChoiceChip(
+                label: Text(region),
+                selected: _selectedRegion == region,
+                onSelected: (selected) {
+                  if (selected) {
+                    setState(() {
+                      _selectedRegion = region;
+                      _applyFilters();
+                    });
+                  }
+                },
+              );
+            }).toList(),
           ),
         ],
       ),

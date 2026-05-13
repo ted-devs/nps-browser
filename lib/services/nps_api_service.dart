@@ -4,17 +4,12 @@ import '../models/psp_game.dart';
 
 class NpsApiService {
   static const String pspGamesUrl = 'http://nopaystation.com/tsv/PSP_GAMES.tsv';
-  static const String pspDlcsUrl = 'http://nopaystation.com/tsv/PSP_DLCS.tsv';
 
   Future<List<PspGame>> fetchPspGames() async {
-    return _fetchAndParse(pspGamesUrl, isDlc: false);
+    return _fetchAndParse(pspGamesUrl);
   }
 
-  Future<List<PspGame>> fetchPspDlcs() async {
-    return _fetchAndParse(pspDlcsUrl, isDlc: true);
-  }
-
-  Future<List<PspGame>> _fetchAndParse(String url, {required bool isDlc}) async {
+  Future<List<PspGame>> _fetchAndParse(String url) async {
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -27,7 +22,8 @@ class NpsApiService {
         if (rows.isEmpty) return [];
 
         return rows
-            .map((row) => PspGame.fromCsv(row, isDlc: isDlc))
+            .skip(1) // Skip header row
+            .map((row) => PspGame.fromCsv(row))
             .where((g) => g.pkgLink.startsWith('http'))
             .toList();
       }

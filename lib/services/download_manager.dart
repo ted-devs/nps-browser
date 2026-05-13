@@ -78,7 +78,6 @@ class DownloadManager extends ChangeNotifier {
       'name': game.name,
       'pkgLink': game.pkgLink,
       'zrif': game.zrif,
-      'isDlc': game.isDlc,
     });
   }
 

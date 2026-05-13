@@ -71,12 +71,9 @@ void onStart(ServiceInstance service) async {
     final name = event['name'] as String;
     final pkgLink = event['pkgLink'] as String;
     final zrif = event['zrif'] as String;
-    final isDlc = event['isDlc'] as bool;
 
     final prefs = await SharedPreferences.getInstance();
-    final targetFolder = isDlc
-        ? prefs.getString('dlcFolder')
-        : prefs.getString('gameFolder');
+    final targetFolder = prefs.getString('gameFolder');
 
     if (targetFolder == null || targetFolder.isEmpty) {
       service.invoke('update', {

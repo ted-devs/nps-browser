@@ -12,7 +12,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String _gameFolder = '';
-  String _dlcFolder = '';
 
   @override
   void initState() {
@@ -24,7 +23,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _gameFolder = prefs.getString('gameFolder') ?? '';
-      _dlcFolder = prefs.getString('dlcFolder') ?? '';
     });
   }
 
@@ -49,18 +47,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _pickDlcFolder() async {
-    await _requestPermissions();
-    String? selectedDirectory = await FilePicker.getDirectoryPath();
-    if (selectedDirectory != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('dlcFolder', selectedDirectory);
-      setState(() {
-        _dlcFolder = selectedDirectory;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,13 +66,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(_gameFolder.isEmpty ? 'Not set (Required)' : _gameFolder),
             trailing: const Icon(Icons.folder_open),
             onTap: _pickGameFolder,
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text('DLC Folder (SAVEDATA)'),
-            subtitle: Text(_dlcFolder.isEmpty ? 'Not set' : _dlcFolder),
-            trailing: const Icon(Icons.folder_open),
-            onTap: _pickDlcFolder,
           ),
         ],
       ),
