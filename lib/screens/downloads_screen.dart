@@ -51,13 +51,20 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Downloading... ${(task.progress * 100).toStringAsFixed(1)}%'),
+            Text('Downloading... ${(task.progress * 100).toInt()}%'),
             const SizedBox(height: 4),
             LinearProgressIndicator(value: task.progress),
           ],
         );
       case DownloadStatus.decrypting:
-        return const Text('Decrypting & Extracting...');
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('Decrypting & Extracting...'),
+            SizedBox(height: 4),
+            LinearProgressIndicator(),
+          ],
+        );
       case DownloadStatus.completed:
         return const Text('Completed');
       case DownloadStatus.error:

@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'screens/home_screen.dart';
 import 'services/decryption_service.dart';
+import 'services/background_download_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await Permission.notification.request();
+  
   DecryptionService().initialize();
+  await initializeBackgroundService();
+  
   runApp(const MyApp());
 }
 

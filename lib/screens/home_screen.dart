@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedRegion = 'All';
-  String _selectedType = 'All';
+  String _selectedType = 'Games';
 
   final List<String> _regions = ['All', 'US', 'EU', 'JP', 'ASIA'];
   final List<String> _types = ['All', 'Games', 'DLCs'];

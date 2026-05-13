@@ -44,6 +44,8 @@ dependencies:
   ffi: ^2.2.0
   path: ^1.9.1
   path_provider: ^2.1.5
+  flutter_background_service: ^5.1.0
+  flutter_local_notifications: ^21.0.0
 
 dev_dependencies:
   flutter_test:

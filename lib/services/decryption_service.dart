@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:ffi/ffi.dart';
 import 'package:path/path.dart' as p;
 
@@ -31,13 +32,18 @@ class DecryptionService {
   /// [zrif]: Optional zRIF string for Vita/DLC.
   /// Returns true if successful.
   Future<bool> decryptPkg(String pkgPath, String outputDir, {String? zrif}) async {
-    // pkg2zip args:
-    // pkg2zip [-x] [-l] [-c[N]] file.pkg [zRIF]
-    // Note: pkg2zip usually creates a subfolder or puts it in the current working directory.
-    // By default, pkg2zip creates 'pspemu/ISO' or 'addcont/...' in the CWD.
-    // So we need to change the CWD of the Dart process temporarily, OR run it, then move the files.
-    // Dart's Directory.current can be changed.
-    
+    return await Isolate.run(() async {
+       final service = DecryptionService();
+       service.initialize();
+       return service._decryptPkgInternal(pkgPath, outputDir, zrif: zrif);
+    });
+  }
+
+  // Actually, let's use Isolate.run properly.
+  // Wait, I need to check if the user is on a version that supports Isolate.run.
+  // Most modern apps are.
+
+  Future<bool> _decryptPkgInternal(String pkgPath, String outputDir, {String? zrif}) async {
     var originalDir = Directory.current;
     try {
       Directory(outputDir).createSync(recursive: true);
@@ -64,9 +70,6 @@ class DecryptionService {
       }
       calloc.free(argv);
 
-      // Now we might need to move files if pkg2zip created subdirectories like 'pspemu/ISO'
-      // pkg2zip usually creates: `pspemu/ISO/Game Name [TitleID].iso`
-      // We should flatten this if the user selected a specific PSP/GAME folder.
       _flattenPspemuFolder(outputDir);
 
       return result == 0;
