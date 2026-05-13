@@ -3,6 +3,7 @@ import '../models/psp_game.dart';
 import '../services/nps_api_service.dart';
 import '../widgets/game_card.dart';
 import 'settings_screen.dart';
+import 'downloads_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -11,30 +12,26 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _HomeScreenState extends State<HomeScreen> {
   final NpsApiService _apiService = NpsApiService();
-  
-  List<PspGame> _games = [];
-  List<PspGame> _dlcs = [];
-  
-  List<PspGame> _filteredGames = [];
-  List<PspGame> _filteredDlcs = [];
+
+  List<PspGame> _allData = [];
+  List<PspGame> _filteredData = [];
 
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedRegion = 'All';
+  String _selectedType = 'All';
 
-  int _gamesPage = 0;
-  int _dlcsPage = 0;
+  final List<String> _regions = ['All', 'US', 'EU', 'JP', 'ASIA'];
+  final List<String> _types = ['All', 'Games', 'DLCs'];
+
+  int _currentPage = 0;
   final int _itemsPerPage = 60;
-
-  final List<String> _regions = ['All', 'USA', 'EUR', 'JPN', 'ASA'];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadData();
   }
 
@@ -45,8 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         _apiService.fetchPspGames(),
         _apiService.fetchPspDlcs(),
       ]);
-      _games = results[0];
-      _dlcs = results[1];
+      _allData = [...results[0], ...results[1]];
       _applyFilters();
     } finally {
       setState(() => _isLoading = false);
@@ -55,21 +51,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   void _applyFilters() {
     setState(() {
-      _gamesPage = 0;
-      _dlcsPage = 0;
-      
-      _filteredGames = _games.where((g) {
-        final matchesSearch = g.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
-                              g.titleId.toLowerCase().contains(_searchQuery.toLowerCase());
-        final matchesRegion = _selectedRegion == 'All' || g.region == _selectedRegion;
-        return matchesSearch && matchesRegion;
-      }).toList();
+      _currentPage = 0;
 
-      _filteredDlcs = _dlcs.where((g) {
-        final matchesSearch = g.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
-                              g.titleId.toLowerCase().contains(_searchQuery.toLowerCase());
-        final matchesRegion = _selectedRegion == 'All' || g.region == _selectedRegion;
-        return matchesSearch && matchesRegion;
+      _filteredData = _allData.where((g) {
+        final matchesSearch =
+            g.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            g.titleId.toLowerCase().contains(_searchQuery.toLowerCase());
+        final matchesRegion =
+            _selectedRegion == 'All' || g.region == _selectedRegion;
+
+        bool matchesType = true;
+        if (_selectedType == 'Games') {
+          matchesType = !g.isDlc;
+        } else if (_selectedType == 'DLCs') {
+          matchesType = g.isDlc;
+        }
+
+        return matchesSearch && matchesRegion && matchesType;
       }).toList();
     });
   }
@@ -81,31 +79,30 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         title: const Text('NPS Browser'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Downloads',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Games'),
-            Tab(text: 'DLCs'),
-          ],
-        ),
       ),
       body: Column(
         children: [
           _buildFilters(),
           Expanded(
-            child: _isLoading 
+            child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildGrid(_filteredGames, false),
-                      _buildGrid(_filteredDlcs, true),
-                    ],
-                  ),
+                : _buildGrid(_filteredData),
           ),
         ],
       ),
@@ -121,7 +118,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             decoration: InputDecoration(
               hintText: 'Search title or ID...',
               prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               contentPadding: const EdgeInsets.symmetric(vertical: 0),
             ),
             onChanged: (val) {
@@ -130,40 +129,74 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             },
           ),
           const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _regions.map((region) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: ChoiceChip(
-                    label: Text(region),
-                    selected: _selectedRegion == region,
-                    onSelected: (selected) {
-                      if (selected) {
-                        _selectedRegion = region;
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Region:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  DropdownButton<String>(
+                    value: _selectedRegion,
+                    items: _regions.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        _selectedRegion = newValue;
                         _applyFilters();
                       }
                     },
                   ),
-                );
-              }).toList(),
-            ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text(
+                    'Type:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  DropdownButton<String>(
+                    value: _selectedType,
+                    items: _types.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        _selectedType = newValue;
+                        _applyFilters();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGrid(List<PspGame> list, bool isDlc) {
+  Widget _buildGrid(List<PspGame> list) {
     if (list.isEmpty) {
       return const Center(child: Text('No results found.'));
     }
 
-    final currentPage = isDlc ? _dlcsPage : _gamesPage;
     final maxPage = (list.length / _itemsPerPage).ceil();
-    final startIndex = currentPage * _itemsPerPage;
-    final endIndex = (startIndex + _itemsPerPage < list.length) ? startIndex + _itemsPerPage : list.length;
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage < list.length)
+        ? startIndex + _itemsPerPage
+        : list.length;
     final pageItems = list.sublist(startIndex, endIndex);
 
     return Column(
@@ -191,29 +224,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed: currentPage > 0
+                onPressed: _currentPage > 0
                     ? () {
                         setState(() {
-                          if (isDlc) {
-                            _dlcsPage--;
-                          } else {
-                            _gamesPage--;
-                          }
+                          _currentPage--;
                         });
                       }
                     : null,
               ),
-              Text('Page ${currentPage + 1} of $maxPage', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                'Page ${_currentPage + 1} of $maxPage',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: currentPage < maxPage - 1
+                onPressed: _currentPage < maxPage - 1
                     ? () {
                         setState(() {
-                          if (isDlc) {
-                            _dlcsPage++;
-                          } else {
-                            _gamesPage++;
-                          }
+                          _currentPage++;
                         });
                       }
                     : null,
