@@ -73,7 +73,7 @@ void onStart(ServiceInstance service) async {
     final zrif = event['zrif'] as String;
 
     final prefs = await SharedPreferences.getInstance();
-    final targetFolder = prefs.getString('gameFolder');
+    final targetFolder = prefs.getString('game_folder');
 
     if (targetFolder == null || targetFolder.isEmpty) {
       service.invoke('update', {
