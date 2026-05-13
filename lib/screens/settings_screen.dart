@@ -90,6 +90,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _largerTiles,
             onChanged: _toggleLargerTiles,
           ),
+          const Divider(),
+          const SizedBox(height: 16),
+          const Text(
+            'About',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+          ),
+          const SizedBox(height: 8),
+          const ListTile(
+            leading: Icon(Icons.info_outline, color: Colors.blueAccent),
+            title: Text('NPS Browser'),
+            subtitle: Text(
+              'A high-performance PSP game manager and downloader. '
+              'Browse, search, and download your favorite PSP titles directly to your device.',
+            ),
+          ),
+          const ListTile(
+            leading: Icon(Icons.person_outline, color: Colors.blueAccent),
+            title: Text('Developer'),
+            subtitle: Text('Talha Salman'),
+          ),
+          const ListTile(
+            leading: Icon(Icons.verified_outlined, color: Colors.blueAccent),
+            title: Text('Version'),
+            subtitle: Text('0.0.1 (Developer Preview)'),
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );
