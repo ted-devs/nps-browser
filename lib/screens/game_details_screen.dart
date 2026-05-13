@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/psp_game.dart';
 import '../services/cover_art_service.dart';
 import '../services/download_manager.dart';
+import '../services/game_description_service.dart';
 
 class GameDetailsScreen extends StatelessWidget {
   final PspGame game;
@@ -69,6 +70,30 @@ class GameDetailsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildSectionTitle('Description'),
+                    const SizedBox(height: 8),
+                    FutureBuilder<String?>(
+                      future: GameDescriptionService.getDescription(game.name),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const SizedBox(
+                            height: 100,
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        if (snapshot.hasError || snapshot.data == null) {
+                          return const Text(
+                            'Description not found.',
+                            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                          );
+                        }
+                        return Text(
+                          snapshot.data!,
+                          style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.white70),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
                     _buildSectionTitle('Game Information'),
                     const SizedBox(height: 16),
                     _buildDetailRow('Title ID', game.titleId),
