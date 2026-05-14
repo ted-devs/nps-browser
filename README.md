@@ -60,6 +60,13 @@ If you want to build the project from source:
 
 ---
 
+## 📜 Credits & Special Thanks
+
+- **pkg2zip**: This project uses a modified version of [pkg2zip](https://github.com/mmozeiko/pkg2zip) by [mmozeiko](https://github.com/mmozeiko) for high-performance native decryption.
+- **NoPayStation**: Database and content provided by the amazing community at [NoPayStation](https://nopaystation.com/).
+
+---
+
 ## ⚖️ Disclaimer & AI Assistance
 
 This application is for educational and personal use only. Users are responsible for complying with the terms of service of the data sources utilized.
