@@ -76,7 +76,14 @@ class DownloadManager extends ChangeNotifier {
     _tasks.add(task);
     notifyListeners();
 
-    FlutterBackgroundService().invoke('addDownload', {
+    final service = FlutterBackgroundService();
+    if (!(await service.isRunning())) {
+      await service.startService();
+      // Wait for the service isolate to start and register listeners
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    service.invoke('addDownload', {
       'titleId': game.titleId,
       'name': game.name,
       'pkgLink': game.pkgLink,
