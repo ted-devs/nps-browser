@@ -46,7 +46,12 @@ class DownloadManager extends ChangeNotifier {
   List<DownloadTask> get tasks => List.unmodifiable(_tasks);
 
   DownloadManager._internal() {
-    _loadTasks();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _loadTasks();
+    
     FlutterBackgroundService().on('update').listen((event) {
       if (event == null) return;
       

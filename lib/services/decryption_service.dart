@@ -82,6 +82,14 @@ class DecryptionService {
       if (result == 0) {
         print('Flattening folder structure...');
         _flattenPspemuFolder(outputDir);
+      } else {
+        // Clean up partial extraction if it failed
+        try {
+          final pspemuDir = Directory(p.join(outputDir, 'pspemu'));
+          if (pspemuDir.existsSync()) {
+            pspemuDir.deleteSync(recursive: true);
+          }
+        } catch (_) {}
       }
 
       return result == 0;

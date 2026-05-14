@@ -51,6 +51,20 @@ void onStart(ServiceInstance service) async {
   DartPluginRegistrant.ensureInitialized();
   DecryptionService().initialize();
 
+  // Garbage Collection: Clean up any orphaned PKG files from previous crashed runs
+  try {
+    final tempDir = await getTemporaryDirectory();
+    final List<FileSystemEntity> files = tempDir.listSync();
+    for (var file in files) {
+      if (file is File && file.path.endsWith('.pkg')) {
+        print('Background Service: Cleaning up orphaned file: ${file.path}');
+        await file.delete();
+      }
+    }
+  } catch (e) {
+    print('Background Service: Error during startup cleanup: $e');
+  }
+
   if (service is AndroidServiceInstance) {
     service.on('setAsForeground').listen((event) {
       service.setAsForegroundService();
