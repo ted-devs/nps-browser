@@ -17,7 +17,6 @@ class PspGame {
   });
 
   factory PspGame.fromCsv(List<dynamic> row) {
-    // Game columns: 0:Title ID, 1:Region, 2:Type, 3:Name, 4:PKG, 5:Content ID, 6:Last Mod, 7:RAP, 8:DL RAP, 9:File Size
     return PspGame(
       titleId: row.length > 0 ? row[0].toString() : '',
       region: row.length > 1 ? row[1].toString() : '',
@@ -27,5 +26,29 @@ class PspGame {
       zrif: row.length > 7 ? row[7].toString() : '',
       fileSize: row.length > 9 ? int.tryParse(row[9].toString()) ?? 0 : 0,
     );
+  }
+
+  factory PspGame.fromJson(Map<String, dynamic> json) {
+    return PspGame(
+      titleId: json['titleId'],
+      region: json['region'],
+      name: json['name'],
+      pkgLink: json['pkgLink'],
+      zrif: json['zrif'],
+      contentId: json['contentId'],
+      fileSize: json['fileSize'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'titleId': titleId,
+      'region': region,
+      'name': name,
+      'pkgLink': pkgLink,
+      'zrif': zrif,
+      'contentId': contentId,
+      'fileSize': fileSize,
+    };
   }
 }

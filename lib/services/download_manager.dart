@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/psp_game.dart';
 
 enum DownloadStatus { pending, downloading, decrypting, completed, error, cancelled }
@@ -9,13 +11,31 @@ class DownloadTask {
   DownloadStatus status;
   double progress;
   String? error;
-
+  
   DownloadTask({
     required this.game,
     this.status = DownloadStatus.pending,
     this.progress = 0.0,
     this.error,
   });
+
+  factory DownloadTask.fromJson(Map<String, dynamic> json) {
+    return DownloadTask(
+      game: PspGame.fromJson(json['game']),
+      status: DownloadStatus.values.firstWhere((e) => e.toString() == json['status']),
+      progress: json['progress'],
+      error: json['error'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'game': game.toJson(),
+      'status': status.toString(),
+      'progress': progress,
+      'error': error,
+    };
+  }
 }
 
 class DownloadManager extends ChangeNotifier {
@@ -26,6 +46,7 @@ class DownloadManager extends ChangeNotifier {
   List<DownloadTask> get tasks => List.unmodifiable(_tasks);
 
   DownloadManager._internal() {
+    _loadTasks();
     FlutterBackgroundService().on('update').listen((event) {
       if (event == null) return;
       
@@ -58,6 +79,7 @@ class DownloadManager extends ChangeNotifier {
             break;
         }
         notifyListeners();
+        _saveTasks();
       } catch (e) {
         // Task not found in memory (could be app restarted while downloading)
         // Advanced: Re-construct task if needed, but for now we ignore.
@@ -75,6 +97,7 @@ class DownloadManager extends ChangeNotifier {
     _tasks.removeWhere((t) => t.game.titleId == game.titleId);
     _tasks.add(task);
     notifyListeners();
+    _saveTasks();
 
     final service = FlutterBackgroundService();
     if (!(await service.isRunning())) {
@@ -94,6 +117,7 @@ class DownloadManager extends ChangeNotifier {
   void cancelDownload(String titleId) {
     _tasks.removeWhere((t) => t.game.titleId == titleId);
     notifyListeners();
+    _saveTasks();
     FlutterBackgroundService().invoke('cancelDownload', {'titleId': titleId});
   }
   
@@ -104,5 +128,23 @@ class DownloadManager extends ChangeNotifier {
       t.status == DownloadStatus.cancelled
     );
     notifyListeners();
+    _saveTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? tasksJson = prefs.getString('download_tasks');
+    if (tasksJson != null) {
+      final List<dynamic> decoded = jsonDecode(tasksJson);
+      _tasks.clear();
+      _tasks.addAll(decoded.map((t) => DownloadTask.fromJson(t)).toList());
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = jsonEncode(_tasks.map((t) => t.toJson()).toList());
+    await prefs.setString('download_tasks', encoded);
   }
 }

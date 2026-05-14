@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -124,6 +125,7 @@ void onStart(ServiceInstance service) async {
         'status': 'downloading',
         'progress': 0.0,
       });
+      await _updateTaskStatusInStorage(titleId, 'downloading', progress: 0.0);
 
       if (service is AndroidServiceInstance) {
         service.setForegroundNotificationInfo(
@@ -190,6 +192,7 @@ void onStart(ServiceInstance service) async {
       activeTokens.remove(titleId);
 
       service.invoke('update', {'titleId': titleId, 'status': 'decrypting'});
+      await _updateTaskStatusInStorage(titleId, 'decrypting');
 
       if (service is AndroidServiceInstance) {
         service.setForegroundNotificationInfo(
@@ -206,6 +209,7 @@ void onStart(ServiceInstance service) async {
 
       if (decrypted) {
         service.invoke('update', {'titleId': titleId, 'status': 'completed'});
+        await _updateTaskStatusInStorage(titleId, 'completed');
         if (service is AndroidServiceInstance) {
           service.setForegroundNotificationInfo(
             title: '$name Downloaded',
@@ -218,6 +222,7 @@ void onStart(ServiceInstance service) async {
           'status': 'error',
           'error': 'Decryption failed.',
         });
+        await _updateTaskStatusInStorage(titleId, 'error', error: 'Decryption failed.');
         if (service is AndroidServiceInstance) {
           service.setForegroundNotificationInfo(
             title: '$name Error',
@@ -235,6 +240,7 @@ void onStart(ServiceInstance service) async {
         'status': 'error',
         'error': e.toString(),
       });
+      await _updateTaskStatusInStorage(titleId, 'error', error: e.toString());
       if (service is AndroidServiceInstance) {
         service.setForegroundNotificationInfo(
           title: 'Download Error',
@@ -258,5 +264,26 @@ void onStart(ServiceInstance service) async {
       }
     }
   });
+}
+
+Future<void> _updateTaskStatusInStorage(String titleId, String status, {double? progress, String? error}) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final String? tasksJson = prefs.getString('download_tasks');
+    if (tasksJson != null) {
+      final List<dynamic> tasks = jsonDecode(tasksJson);
+      for (var task in tasks) {
+        if (task['game']['titleId'] == titleId) {
+          task['status'] = 'DownloadStatus.$status';
+          if (progress != null) task['progress'] = progress;
+          if (error != null) task['error'] = error;
+          break;
+        }
+      }
+      await prefs.setString('download_tasks', jsonEncode(tasks));
+    }
+  } catch (e) {
+    print('Error updating task in storage: $e');
+  }
 }
 
