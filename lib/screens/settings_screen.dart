@@ -60,20 +60,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           const Text(
             'Storage Configuration',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
+            ),
           ),
           const SizedBox(height: 16),
           ListTile(
             title: const Text('Game Folder (ISOs)'),
-            subtitle: Text(_gameFolder.isEmpty ? 'Not set (Required)' : _gameFolder),
+            subtitle: Text(
+              _gameFolder.isEmpty ? 'Not set (Required)' : _gameFolder,
+            ),
             trailing: const Icon(Icons.folder_open),
             onTap: _pickGameFolder,
           ),
@@ -81,7 +85,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           const Text(
             'Interface Settings',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
+            ),
           ),
           const SizedBox(height: 8),
           SwitchListTile(
@@ -94,7 +102,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           const Text(
             'About',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
+            ),
           ),
           const SizedBox(height: 8),
           const ListTile(
@@ -107,13 +119,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const ListTile(
             leading: Icon(Icons.person_outline, color: Colors.blueAccent),
-            title: Text('Developer'),
+            title: Text('Developed by'),
             subtitle: Text('Talha Salman'),
           ),
           const ListTile(
             leading: Icon(Icons.verified_outlined, color: Colors.blueAccent),
             title: Text('Version'),
-            subtitle: Text('0.0.2 (Release Candidate)'),
+            subtitle: Text('0.0.3 (Preview)'),
           ),
           const SizedBox(height: 32),
         ],
